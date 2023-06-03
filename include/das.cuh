@@ -9,11 +9,17 @@
 extern "C" {
 #endif
 
-__declspec(dllexport) void cuda_valid(bool *res);
+#ifdef _WIN32
+#define MODULE_API __declspec(dllexport)
+#else
+#define MODULE_API
+#endif
 
-__declspec(dllexport) void envelope(double *RF, double *env_real, double *env_imag, short *start_samp, short *end_samp, int n_ang, int n_el, int N, int tot_samples);
+    MODULE_API void cuda_valid(bool *res);
 
-__declspec(dllexport) void delay_and_sum(double *us_im_real, double *us_im_imag,
+    MODULE_API void envelope(double *RF, double *env_real, double *env_imag, short *start_samp, short *end_samp, int n_ang, int n_el, int N, int tot_samples);
+
+    MODULE_API void delay_and_sum(double *us_im_real, double *us_im_imag,
                                          double *env_real, double *env_imag,
                                          double *delay_tx, double *delay_rx,
                                          int n_ang, int n_el, int N, int pixels_per_slice, int pixels_per_thread);
