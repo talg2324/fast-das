@@ -8,14 +8,7 @@ import utils
 class DAS():
     def __init__(self, use_gpu=False) -> None:
 
-        # Load the shared library
-        os_name = platform.system()
-
-        if os_name == 'Windows' and use_gpu:
-            self.lib = ctypes.CDLL('./bin/das_cu.dll')
-            self.check_cuda()
-        elif os_name == 'Windows' and not use_gpu:
-            self.lib = ctypes.CDLL('./bin/libdas.dll')
+        self.load_lib(use_gpu)
 
         # Define the argument types for the C++ functions
         self.lib.envelope.argtypes = [
@@ -46,17 +39,54 @@ class DAS():
 
         self.workspace = None
 
-    def check_cuda(self):
-        self.lib.cuda_valid.restype = None
-        self.lib.cuda_valid.argtypes = [ctypes.POINTER(ctypes.c_bool)]
+    def load_lib(self, use_gpu):
+
+        # Load the shared library
+        os_name = platform.system()
+
+        lib_path = './src/bin/libdas'
+
+        if use_gpu:
+            lib_path += '_cu'
+
+        if os_name == 'Windows':
+            lib_path += '.dll'
+
+        elif os_name == 'Linux':
+            lib_path += '.so'
+
+        else:
+            raise NotImplementedError("fast-DAS is only pre-compiled for Linux and Windows")
+
+        if use_gpu:
+            try:
+                self.check_cuda(lib_path)
+
+            except:
+                print("Failed checking GPU compatibility. Reverting to CPU...")
+                self.revert_to_cpu(lib_path)
+
+        else:
+            self.lib = ctypes.CDLL(lib_path)
+
+    def check_cuda(self, lib_path):
+
+        lib = ctypes.CDLL(lib_path)
+
+        lib.cuda_valid.restype = None
+        lib.cuda_valid.argtypes = [ctypes.POINTER(ctypes.c_bool)]
         valid = ctypes.c_bool()
-        self.lib.cuda_valid(ctypes.byref(valid))
+        lib.cuda_valid(ctypes.byref(valid))
 
         if not valid:
             print("No NVIDIA GPU detected. Try updating CUDA toolkit. Reverting to CPU...")
-            self.lib = ctypes.CDLL('./bin/das.dll')
+            self.revert_to_cpu(lib_path)
 
+        else:
+            self.lib = lib
 
+    def revert_to_cpu(self, lib_path):
+        self.lib = ctypes.CDLL(lib_path.replace('_cu', ''))
 
     def load_vsx_workspace(self, filepath):
         self.workspace = utils.load_workspace(filepath)
@@ -69,9 +99,9 @@ class DAS():
             total_el = self.workspace['Trans']['ElementPos'].shape[0]
             start_el = total_el // 2 - n_el // 2
 
-        im_res = (self.workspace['PData']['PDelta'][-1], self.workspace['PData']['PDelta'][0]) # x y z -> z x
-        im_shape = tuple(self.workspace['PData']['Size'][:-1]) # z x
-        
+        im_res = (self.workspace['PData']['PDelta'][-1], self.workspace['PData']['PDelta'][0])  # x y z -> z x
+        im_shape = tuple(self.workspace['PData']['Size'][:-1])  # z x
+
         pix_pos = np.zeros((im_shape[0], im_shape[1], 3))
 
         scan_origin = np.arange(im_res[1], im_shape[1] + im_res[1]) * im_res[1]
@@ -110,7 +140,7 @@ class DAS():
 
         else:
             raise NotImplementedError('Transmission type not implemented- consider implementing yourself')
-        
+
         self.del_Tx = (self.del_Tx + Tx_const_delay) * self.workspace['Receive']['SamplesPerWave']
         self.el_order = np.squeeze(self.workspace['Trans']['ConnectorES'][start_el:start_el+n_el]-1)
         self.n_el = n_el
@@ -135,43 +165,43 @@ class DAS():
         end_sample = np.squeeze(self.workspace['Receive']['EndSample']).astype(np.int16)
 
         n_samples = end_sample[0] - start_sample[0]
-        N = int(2**(np.ceil(np.log2(n_samples)))) # Round to next power of two
+        N = int(2**(np.ceil(np.log2(n_samples))))  # Round to next power of two
 
         envelope_real = np.zeros((self.NA, self.n_el, N), dtype=np.float64)
         envelope_imag = np.zeros_like(envelope_real)
 
         self.lib.envelope(
-                            RF,
-                            envelope_real,
-                            envelope_imag,
-                            start_sample,
-                            end_sample,
-                            self.NA,
-                            self.n_el,
-                            N,
-                            RF.shape[1])
+            RF,
+            envelope_real,
+            envelope_imag,
+            start_sample,
+            end_sample,
+            self.NA,
+            self.n_el,
+            N,
+            RF.shape[1])
 
         print('Done calculating envelope')
 
         RF = envelope_real + 1j * envelope_imag
 
         na, height, width = self.del_Tx.shape
-        
+
         us_im_real = np.zeros((na, height, width), dtype=np.float64)
         us_im_imag = np.zeros((na, height, width), dtype=np.float64)
 
         self.lib.delay_and_sum(
-                                us_im_real,
-                                us_im_imag,
-                                envelope_real,
-                                envelope_imag,
-                                self.del_Tx,
-                                self.del_Rx,
-                                na,
-                                self.n_el,
-                                N,
-                                height,
-                                width)
-        
+            us_im_real,
+            us_im_imag,
+            envelope_real,
+            envelope_imag,
+            self.del_Tx,
+            self.del_Rx,
+            na,
+            self.n_el,
+            N,
+            height,
+            width)
+
         us_im = us_im_real + 1j * us_im_imag
         return np.abs(us_im)
