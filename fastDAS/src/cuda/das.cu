@@ -195,16 +195,11 @@ __global__ void interp_field_thread(double *us_im_real, double *us_im_imag, doub
                 // t = binary_search_nearest(sample_vector, N, delay_samples);
                 t = (int)roundf(delay_samples);
 
-                if (t == -1) {
-                    continue;
-                } else {
+                denominator = sample_vector[t] - sample_vector[t-1];
+                w = (delay_samples - sample_vector[t-1]) / denominator;
+                w2 = w * w;
+                w3 = w * w2;
 
-                    denominator = sample_vector[t] - sample_vector[t-1];
-                    w = (delay_samples - sample_vector[t-1]) / denominator;
-                    w2 = w * w;
-                    w3 = w * w2;
-                }
-                
                 fx0 = beam_real[t - 2];
                 fx1 = beam_real[t - 1];
                 fx2 = beam_real[t    ];

@@ -1,12 +1,22 @@
+import pkg_resources
 import platform
 import ctypes
+import logging
 import numpy as np
-from scipy.interpolate import interp1d
-import utils
+from . import utils
 
 
 class DAS():
-    def __init__(self, use_gpu=False) -> None:
+    def __init__(self, use_gpu: bool = False) -> None:
+        """
+        initialize the delay-and-sum algorithm. This object will hold the delays and control handles to the underlying shared library
+
+        Parameters
+        ----------
+        use_gpu : bool, optional
+            whether to use CUDA or multi-threading, by default False (CPU only)
+            make sure there is a valid CUDA setup before setting this to true
+        """
 
         self.load_lib(use_gpu)
 
@@ -39,12 +49,26 @@ class DAS():
 
         self.workspace = None
 
-    def load_lib(self, use_gpu):
+    def load_lib(self, use_gpu: bool) -> None:
+        """
+        load the shared library containing native DAS algorithms
+
+        Parameters
+        ----------
+        use_gpu : bool
+            whether to use CUDA or multi-threading, by default False (CPU only)
+            make sure there is a valid CUDA setup before setting this to true
+
+        Raises
+        ------
+        NotImplementedError
+            if the os is not windows or unix
+        """
 
         # Load the shared library
         os_name = platform.system()
 
-        lib_path = './src/bin/libdas'
+        lib_path = pkg_resources.resource_filename('fastDAS', 'bin') + '/libdas'
 
         if use_gpu:
             lib_path += '_cu'
@@ -63,13 +87,21 @@ class DAS():
                 self.check_cuda(lib_path)
 
             except:
-                print("Failed checking GPU compatibility. Reverting to CPU...")
+                logging.log("Failed checking GPU compatibility. Reverting to CPU...")
                 self.revert_to_cpu(lib_path)
 
         else:
             self.lib = ctypes.CDLL(lib_path)
 
-    def check_cuda(self, lib_path):
+    def check_cuda(self, lib_path: str) -> None:
+        """
+        checks if the CUDA environment is set up correctly
+
+        Parameters
+        ----------
+        lib_path : str
+            path to the shared library
+        """
 
         lib = ctypes.CDLL(lib_path)
 
@@ -79,19 +111,47 @@ class DAS():
         lib.cuda_valid(ctypes.byref(valid))
 
         if not valid:
-            print("No NVIDIA GPU detected. Try updating CUDA toolkit. Reverting to CPU...")
+            logging.log("No NVIDIA GPU detected. Try updating CUDA toolkit. Reverting to CPU...")
             self.revert_to_cpu(lib_path)
 
         else:
             self.lib = lib
 
-    def revert_to_cpu(self, lib_path):
+    def revert_to_cpu(self, lib_path: str) -> None:
         self.lib = ctypes.CDLL(lib_path.replace('_cu', ''))
 
-    def load_vsx_workspace(self, filepath):
+    def load_vsx_workspace(self, filepath: str) -> None:
+        """
+        used to load a MATLAB Vantage workspace to the class for calculating the pulse geometry
+
+        Parameters
+        ----------
+        filepath : str
+            path to the workspace .mat file
+        """
         self.workspace = utils.load_workspace(filepath)
 
-    def init_delays(self, n_el, start_el=-1, transmission='pw'):
+    def init_delays(self, n_el: int, start_el: int = -1, transmission: str = 'pw'):
+        """
+        calculate the Tx and Rx delay map
+
+        Parameters
+        ----------
+        n_el : int
+            number of elements in the transducer aperture (active elements only!)
+        start_el : int, optional
+            first element of the activated aperture
+            calculated as the center of the aperture if not specified, by default -1
+        transmission : str, optional
+            tx pulse type (plane wave, dynamic focus, etc), by default 'pw'
+
+        Raises
+        ------
+        ValueError
+            if no workspace has been provided
+        NotImplementedError
+            only plane wave transmissions have been implemented so far- consider implementing your own
+        """
 
         if self.workspace is None:
             raise ValueError('No workspace loaded, call the load_vsx_workspace function first')
@@ -145,18 +205,45 @@ class DAS():
         self.el_order = np.squeeze(self.workspace['Trans']['ConnectorES'][start_el:start_el+n_el]-1)
         self.n_el = n_el
 
-    def gen_pw_delays(self, im_shape, el_posx, x, z):
+    def gen_pw_delays(self, im_shape: tuple, el_posx: np.ndarray, x: np.ndarray, z: np.ndarray) -> None:
+        """
+        utility function to create Tx delay for plane wave sequences
+
+        Parameters
+        ----------
+        im_shape : tuple
+            output image shape
+            RF data is interpolated to this size
+        el_posx : np.ndarray
+            1-D vector of element x positions
+        x : np.ndarray
+            grid of pixel x coordinates of size im_shape
+        z : np.ndarray
+            grid of pixel z coordinates of size im_shape
+        """
 
         self.NA = self.workspace['NA']['NA_tot'][0, 0]
         self.del_Tx = np.zeros((self.NA, im_shape[0], im_shape[1]))
         for n in range(self.NA):
             phi = self.workspace['TX']['Steer'][n]
-            el_delay = interp1d(el_posx, self.workspace['TX']['Delay'][n], kind='cubic', fill_value='extrapolate')
 
             self.del_Tx[n, ...] = z * np.cos(phi) + x * np.sin(phi)
-            self.del_Tx[n, ...] += el_delay(0)  # Add delay to origin
+            self.del_Tx[n, ...] += np.interp(0, el_posx, self.workspace['TX']['Delay'][n])  # Add delay to origin
 
-    def beamform(self, rf_filepath):
+    def beamform(self, rf_filepath: str) -> np.ndarray:
+        """
+        digital delay-and-sum calculation
+
+        Parameters
+        ----------
+        rf_filepath : str
+            path to an RF file acquired by Vantage software
+
+        Returns
+        -------
+        np.ndarray
+            beamformed US image
+        """
 
         RF = utils.load_rf(rf_filepath)
         RF = RF[:, self.el_order].astype(np.float64).T
@@ -180,9 +267,7 @@ class DAS():
             self.n_el,
             N,
             RF.shape[1])
-
-        print('Done calculating envelope')
-
+        
         RF = envelope_real + 1j * envelope_imag
 
         na, height, width = self.del_Tx.shape
@@ -203,5 +288,4 @@ class DAS():
             height,
             width)
 
-        us_im = us_im_real + 1j * us_im_imag
-        return np.abs(us_im)
+        return us_im_real + 1j * us_im_imag
