@@ -8,6 +8,16 @@
 #include <vector>
 #include <thread>
 
+/// @brief calculate the complex envelope of the RF data
+/// @param RF input RF data
+/// @param env_real real part of output envelope
+/// @param env_imag imaginary part of output envelope
+/// @param start_samp start index of the RF beam in the RF block
+/// @param end_samp end index of the RF beam in the RF block
+/// @param n_ang number of steering angles to beamform
+/// @param n_el number of elements in the transducer aperture
+/// @param N points per beam- should be a power of two
+/// @param tot_samples number of samples in an RF block for a single angle
 void envelope(double *RF, double *env_real, double *env_imag,
               short *start_samp, short *end_samp, int n_ang, int n_el, int N, int tot_samples)
 {
@@ -40,6 +50,8 @@ void envelope(double *RF, double *env_real, double *env_imag,
     }
 }
 
+/// @brief a logic block to be split among compute resources for envelope calculation
+/// @return nullptr indicating thread completion
 void* envelope_thread(void *args)
 {
     EnvelopeThreadArgs *threadArgs = (EnvelopeThreadArgs*)args;
@@ -84,6 +96,18 @@ void* envelope_thread(void *args)
     return nullptr;
 }
 
+/// @brief delay and sum algorithm
+/// @param us_im_real real part of output image
+/// @param us_im_imag imaginary part of output image
+/// @param env_real real part of complex envelope calculated from the envelope() function
+/// @param env_imag imaginary part of complex envelope calculated from the envelope() function
+/// @param delay_tx Tx delays in units of [samples] for each acquisition
+/// @param delay_rx Rx delays in units of [samples] for each element
+/// @param n_ang number of steering angles to beamform
+/// @param n_el number of elements in the transducer aperture
+/// @param N points per beam- should be a power of two
+/// @param height grid height- same size as Tx and Rx delays
+/// @param width grid with- same size as Tx and Rx delays
 void delay_and_sum(double *us_im_real, double *us_im_imag, double *env_real, double *env_imag,
                    double *delay_tx, double *delay_rx, int n_ang, int n_el, int N, int height, int width)
 {
@@ -123,6 +147,8 @@ void delay_and_sum(double *us_im_real, double *us_im_imag, double *env_real, dou
     free(sample_vector);
 }
 
+/// @brief a logic block performing the interpolation step- uses the Tx and Rx delays to create an image from each element RF
+/// @return nullptr indicating thread completion
 void* interp_field(void *args)
 {
     InterpolationThreadArgs *threadArgs = (InterpolationThreadArgs*)args;

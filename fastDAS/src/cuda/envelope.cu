@@ -1,6 +1,14 @@
 #include <cstring>
 #include "fft4g.cu"
 
+/// @brief Perform the Hilbert transform on an RF beam to acquire the complex envelope
+/// @param signal input RF 
+/// @param R real part of envelope
+/// @param I imaginary part of envelope
+/// @param signal_ptr utility memory to hold the RF beam for the FFT calculation
+/// @param ip utility array for the FFT calculation
+/// @param w utility array for the FFT calculation
+/// @param N number of points in the beam- should be a power of 2
 __device__ void hilbert(double *signal, double *R, double *I, double *signal_ptr, int *ip, double *w, int N)
 {
     int twoN = 2 * N;
