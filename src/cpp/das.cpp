@@ -170,7 +170,8 @@ void* interp_field(void *args)
             else {
 
                 // Find the nearest sampled point
-                t = binary_search_nearest(sample_vector, N, delay_samples);
+                // t = binary_search_nearest(sample_vector, N, delay_samples);
+                t = (int)round(delay_samples);
 
                 if (t == -1) {
                     continue;

@@ -13,13 +13,18 @@ def main():
     us_im = das.beamform(os.environ['data_dir'] + 'RFData.mat')
     dt = time.time() - t0
 
-    print('CDAS: %.3f' % dt)
+    print('CPU/DAS: %.3f' % dt)
 
-    # t0 = time.time()
+    das = DAS(use_gpu=True)
+    das.load_vsx_workspace(os.environ['data_dir'] + 'Workspace.mat')
+    das.init_delays(n_el=128, transmission='pw')
+
+    t0 = time.time()
+    us_im2 = das.beamform(os.environ['data_dir'] + 'RFData.mat')
     # us_im2 = tmp_test(das)
-    # dt2 = time.time() - t0
+    dt2 = time.time() - t0
 
-    # print('PyDAS: %.3f' % dt2)
+    print('GPU/DAS: %.3f' % dt2)
 
     n_ang = us_im.shape[0]
     for i in range(n_ang):
@@ -28,14 +33,14 @@ def main():
         plt.axis('off')
 
         if i == n_ang//2:
-            plt.title('CDAS: %.3f' % dt)
+            plt.title('CPU/DAS: %.3f' % dt)
 
-        # plt.subplot(2, n_ang, i+1 + n_ang)
-        # plt.imshow(us_im2[i, ...], cmap='gray')
-        # plt.axis('off')
+        plt.subplot(2, n_ang, i+1 + n_ang)
+        plt.imshow(us_im2[i, ...], cmap='gray')
+        plt.axis('off')
 
-        # if i == n_ang//2:
-        #     plt.title('PyDAS: %.3f' % dt2)
+        if i == n_ang//2:
+            plt.title('GPU/DAS: %.3f' % dt2)
     plt.show()
 
 

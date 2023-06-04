@@ -192,7 +192,8 @@ __global__ void interp_field_thread(double *us_im_real, double *us_im_imag, doub
             else {
 
                 // Find the nearest sampled point
-                t = binary_search_nearest(sample_vector, N, delay_samples);
+                // t = binary_search_nearest(sample_vector, N, delay_samples);
+                t = (int)roundf(delay_samples);
 
                 if (t == -1) {
                     continue;
