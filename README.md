@@ -2,7 +2,7 @@
 Parallel delay-and-sum implementation wrapping native CUDA from python  
 
 <p align="center" width="100%">
-    <img width="80%" src="./example/pw-sample.png"> 
+    <img width="100%" src="./example/pw-sample.png"> 
 </p>
 
 ## About
