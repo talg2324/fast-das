@@ -2,7 +2,7 @@
 Parallel delay-and-sum implementation wrapping native CUDA from python  
 
 <p align="center" width="100%">
-    <img width="50%" src="./example/pw-sample.png"> 
+    <img width="80%" src="./example/pw-sample.png"> 
 </p>
 
 ## About
@@ -26,31 +26,31 @@ To beamform with fast-DAS, initialize a DAS object based on your compute prefere
 For <i>out-of-the-box</i> usage with Verasonics Vantage systems, save the MATLAB workspace after collecting an RF acquisition.  
 The workspace file should contain at least the following variables as a .mat file:
 
-```json
+```
     {
-        'NA': {'NA_tot': WS['na_tot'], 'NA': WS['na']},
+        'NA': {'NA_tot':_, 'NA':_},
         'PData': {
-            'Size': WS['PData']['Size'][0][0].flatten(),
-            'PDelta': WS['PData']['PDelta'][0][0].flatten(),
-            'Origin': WS['PData']['Origin'][0][0].flatten(),
+            'Size': _,
+            'PDelta': _,
+            'Origin': _,
         },
         'Trans': {
-            'lensCorrection': WS['Trans']['lensCorrection'][0][0].flatten(),
-            'ElementPos': WS['Trans']['ElementPos'][0][0],
-            'WavelenToMm': WS['Trans']['spacingMm'][0][0].flatten() / WS['Trans']['spacing'][0][0].flatten(),
+            'lensCorrection': _,
+            'ElementPos': _,
+            'WavelenToMm': _,
         },
         'TX': {
-            'Steer': np.array([WS['TX']['Steer'][0][i][0, 0] for i in range(WS['TX'].shape[-1])]),
-            'Delay': np.vstack([WS['TX']['Delay'][0, i] for i in range(9)]),
+            'Steer': _,
+            'Delay': _,
         },
         'TW': {
-            'Peak': WS['TW']['peak'][0][0].flatten()
+            'Peak': _
         },
         'Receive': {
-            'SamplesPerWave': WS['Receive']['samplesPerWave'][0][0].flatten(),
-            'StartDepth': WS['Receive']['startDepth'][0][0].flatten(),
-            'StartSample': np.vstack([WS['Receive']['startSample'][0][i].flatten() for i in range(WS['Receive']['endSample'].shape[1])]),
-            'EndSample': np.vstack([WS['Receive']['endSample'][0][i].flatten() for i in range(WS['Receive']['endSample'].shape[1])])
+            'SamplesPerWave': _,
+            'StartDepth': _,
+            'StartSample': _,
+            'EndSample': _
         }
     }
 ```
