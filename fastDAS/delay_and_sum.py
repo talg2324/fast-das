@@ -230,9 +230,10 @@ class DAS():
             self.del_Tx[n, ...] = z * np.cos(phi) + x * np.sin(phi)
             self.del_Tx[n, ...] += np.interp(0, el_posx, self.workspace['TX']['Delay'][n])  # Add delay to origin
 
-    def beamform(self, rf_filepath: str) -> np.ndarray:
+    def beamform_file(self, rf_filepath: str) -> np.ndarray:
         """
-        digital delay-and-sum calculation
+        wrapper for the digital delay-and-sum calculation
+        loads a MAT file of RF data to beamform
 
         Parameters
         ----------
@@ -242,18 +243,45 @@ class DAS():
         Returns
         -------
         np.ndarray
-            beamformed US image
+            beamformed US image set of size [self.NA, FOVz, FOVx]
         """
 
         RF = utils.load_rf(rf_filepath)
-        RF = RF[:, self.el_order].astype(np.float64).T
 
         start_sample = np.squeeze(self.workspace['Receive']['StartSample']).astype(np.int16) - 1
         end_sample = np.squeeze(self.workspace['Receive']['EndSample']).astype(np.int16)
 
         n_samples = end_sample[0] - start_sample[0]
         N = int(2**(np.ceil(np.log2(n_samples))))  # Round to next power of two
+        return self.beamform(RF, N, start_sample, end_sample)
 
+    def beamform(self, RF: np.ndarray, N: int, start_sample: np.ndarray, end_sample: np.ndarray) -> np.ndarray:
+        """
+        this method actually calls the library
+        the DAS object must have the following before using this method
+        1) self.el_order (np.ndarray): element array describing the physical order of the RF channels on the transducer
+        2) self.NA (int): number of steering angles / number of acquisitions
+        3) self.n_el (int): number of RF data channels
+        4) self.del_Tx (np.ndarray of size [self.NA, FOVz, FOVx]): Tx delays [samples] 
+        5) self.del_Rx (np.ndarray of size [self.n_el, FOVz, FOVx]): Rx delays [samples]
+
+        Parameters
+        ----------
+        RF : np.ndarray
+            RF data to beamform
+        N : int
+            number of data samples per acquisition rounded up to the nearest power of 2
+        start_sample : np.ndarray
+            array describing where in the (samples_per_acquisition x NA) samples begins each acquisition
+        end_sample : np.ndarray
+            array describing where in the (samples_per_acquisition x NA) samples ends each acquisition 
+
+        Returns
+        -------
+        np.ndarray
+            beamformed US image set of size [self.NA, FOVz, FOVx]
+        """
+        RF = RF[:, self.el_order].astype(np.float64).T
         envelope_real = np.zeros((self.NA, self.n_el, N), dtype=np.float64)
         envelope_imag = np.zeros_like(envelope_real)
 

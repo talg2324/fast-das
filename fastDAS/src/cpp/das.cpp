@@ -77,17 +77,20 @@ void* envelope_thread(void *args)
     double *w = (double*) malloc(sizeof(double) * (N * 5) / 4);
     ip[0] = 0;
 
+    src_cursor = start_el * tot_samples;
+
     for (int el = start_el; el < end_el; ++el)
     {
-        src_cursor = el * tot_samples;
-
+        dst_cursor = el * N;
         for (int n = 0; n < n_ang; ++n)
         {
             start = start_samp[n];
-            dst_cursor = n * points_per_ang + el * N;
 
             hilbert(&RF[src_cursor + start], &env_real[dst_cursor], &env_imag[dst_cursor], signal_ptr, ip, w, N);
+
+            dst_cursor += points_per_ang;
         }
+        src_cursor += tot_samples;
     }
 
     free(signal_ptr);
