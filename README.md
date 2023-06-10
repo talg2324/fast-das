@@ -15,6 +15,12 @@ Parallel delay-and-sum implementation wrapping native CUDA from python
 fast-DAS is a python wrapper and native code implementation for the delay-and-sum algorithm pre-compiled in C++ (CPU version) and CUDA (GPU version).  
 The goal is to boost the digital beamforming process for ultrasound acquisitions.
 
+### Installation
+
+```console
+pip install fast-das
+```
+
 ### Input format
 To beamform with fast-DAS, initialize a DAS object based on your compute preference (CPU/GPU):
 

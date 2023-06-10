@@ -87,7 +87,7 @@ class DAS():
                 self.check_cuda(lib_path)
 
             except:
-                logging.log("Failed checking GPU compatibility. Reverting to CPU...")
+                logging.log(logging.WARNING, "Failed checking GPU compatibility. Reverting to CPU...")
                 self.revert_to_cpu(lib_path)
 
         else:
@@ -111,7 +111,7 @@ class DAS():
         lib.cuda_valid(ctypes.byref(valid))
 
         if not valid:
-            logging.log("No NVIDIA GPU detected. Try updating CUDA toolkit. Reverting to CPU...")
+            logging.log(logging.WARNING, "No NVIDIA GPU detected. Try updating CUDA toolkit. Reverting to CPU...")
             self.revert_to_cpu(lib_path)
 
         else:
