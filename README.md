@@ -21,6 +21,15 @@ The goal is to boost the digital beamforming process for ultrasound acquisitions
 pip install fast-das
 ```
 
+### Note on Windows/CPU usage
+In Windows, you may encounter the following error when setting the use_gpu flag to False:
+
+```console
+FileNotFoundError: Could not find module '..\lib\site-packages\fastDAS\bin\libdas.dll' (or one of its dependencies). Try using the full path with constructor syntax.
+```
+
+This is because multi-threading is performed with the pthreads library, which is not natively included in Windows.
+pthreads is included in MinGW, so adding gcc to your conda environment will resolve this issue (for example from [here](https://anaconda.org/conda-forge/m2w64-toolchain)).
 ### Input format
 To beamform with fast-DAS, initialize a DAS object based on your compute preference (CPU/GPU):
 
