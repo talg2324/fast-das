@@ -1,13 +1,13 @@
 import setuptools
 
-__version__ = '1.1.0'
+__version__ = '1.1.1'
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="fast-das",                        # This is the name of the package
-    version=__version__,                        # The initial release version
+    version=__version__,                    # Release version
     author="talg",                          # Full name of the author
     description="Parallel beamforming wrapper for native code",
     long_description=long_description,      # Long description read from the the readme file
@@ -22,6 +22,6 @@ setuptools.setup(
     py_modules=["fastDAS"],                 # Name of the python package
     package_dir={'fastDAS' : 'fastDAS'},        # Directory of the source code of the package
     install_requires=['numpy'],              # Install other dependencies if any
-    package_data={'bin': ['*.dll', '*.so']},
+    package_data={'fastDAS': ['bin/*.dll', 'bin/*.so']},
     include_package_data=True
 )
