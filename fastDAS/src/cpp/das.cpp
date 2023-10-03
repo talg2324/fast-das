@@ -13,13 +13,12 @@
 /// @param env_real real part of output envelope
 /// @param env_imag imaginary part of output envelope
 /// @param start_samp start index of the RF beam in the RF block
-/// @param end_samp end index of the RF beam in the RF block
 /// @param n_ang number of steering angles to beamform
 /// @param n_el number of elements in the transducer aperture
 /// @param N points per beam- should be a power of two
 /// @param tot_samples number of samples in an RF block for a single angle
 void envelope(double *RF, double *env_real, double *env_imag,
-              short *start_samp, short *end_samp, int n_ang, int n_el, int N, int tot_samples)
+              int *start_samp, int n_ang, int n_el, int N, int tot_samples)
 {
     
     std::vector<pthread_t> threads;
@@ -35,7 +34,7 @@ void envelope(double *RF, double *env_real, double *env_imag,
     {
         // Create thread arguments
         EnvelopeThreadArgs* args = new EnvelopeThreadArgs{
-            RF, env_real, env_imag, start_samp, end_samp,
+            RF, env_real, env_imag, start_samp,
             n_ang, N, tot_samples, points_per_ang, el, el + tasks_per_core
         };
 
@@ -59,8 +58,7 @@ void* envelope_thread(void *args)
     double *RF = threadArgs->RF;
     double *env_real = threadArgs->env_real;
     double *env_imag = threadArgs->env_imag;
-    short *start_samp = threadArgs->start_samp;
-    short *end_samp = threadArgs->end_samp;
+    int *start_samp = threadArgs->start_samp;
     int n_ang = threadArgs->n_ang;
     int N = threadArgs->N;
     int tot_samples = threadArgs->tot_samples;

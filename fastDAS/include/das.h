@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-void envelope(double *RF, double *env_real, double *env_imag, short *start_samp, short *end_samp, int n_ang, int n_el, int N, int tot_samples);
+void envelope(double *RF, double *env_real, double *env_imag, int *start_samp, int n_ang, int n_el, int N, int tot_samples);
 
 void delay_and_sum(double *us_im_real, double *us_im_imag,
                    double *env_real, double *env_imag,
@@ -27,8 +27,7 @@ struct EnvelopeThreadArgs {
     double *RF;
     double *env_real;
     double *env_imag;
-    short *start_samp;
-    short *end_samp;
+    int *start_samp;
     int n_ang;
     int N;
     int tot_samples;

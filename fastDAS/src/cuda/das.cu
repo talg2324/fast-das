@@ -36,22 +36,20 @@ void cuda_valid(bool *res)
 /// @param N points per beam- should be a power of two
 /// @param tot_samples number of samples in an RF block for a single angle
 void envelope(double *RF, double *env_real, double *env_imag,
-              short *start_samp, short *end_samp, int n_ang, int n_el, int N, int tot_samples)
+              int *start_samp,  int n_ang, int n_el, int N, int tot_samples)
 {
     double *RF_cuda, *env_real_cuda, *env_imag_cuda;
-    short *start_samp_cuda, *end_samp_cuda;
+    int *start_samp_cuda;
 
     cudaMalloc((void**)&RF_cuda,         sizeof(double) * n_el * tot_samples);
     cudaMalloc((void**)&env_real_cuda,   sizeof(double) * n_ang * n_el * N);
     cudaMalloc((void**)&env_imag_cuda,   sizeof(double) * n_ang * n_el * N);
-    cudaMalloc((void**)&start_samp_cuda, sizeof(short)  * n_ang);
-    cudaMalloc((void**)&end_samp_cuda,   sizeof(short)  * n_ang);
+    cudaMalloc((void**)&start_samp_cuda, sizeof(int)  * n_ang);
 
     cudaMemcpyAsync(RF_cuda,                 RF, sizeof(double) * n_el * tot_samples, cudaMemcpyHostToDevice);
     cudaMemcpyAsync(env_real_cuda,     env_real, sizeof(double) * n_ang * n_el * N, cudaMemcpyHostToDevice);
     cudaMemcpyAsync(env_imag_cuda,     env_imag, sizeof(double) * n_ang * n_el * N, cudaMemcpyHostToDevice);
-    cudaMemcpyAsync(start_samp_cuda, start_samp, sizeof(short)  * n_ang, cudaMemcpyHostToDevice);
-    cudaMemcpyAsync(end_samp_cuda,     end_samp, sizeof(short)  * n_ang, cudaMemcpyHostToDevice);
+    cudaMemcpyAsync(start_samp_cuda, start_samp, sizeof(int)  * n_ang, cudaMemcpyHostToDevice);
 
     // Helper arrays
     double *signal_ptr, *w;
@@ -64,7 +62,7 @@ void envelope(double *RF, double *env_real, double *env_imag,
 
     int threads_per_block = n_el / GRID_SIZE_ENV;
     envelope_thread<<<GRID_SIZE_ENV, threads_per_block>>>(RF_cuda, env_real_cuda, env_imag_cuda, 
-                                                        start_samp_cuda, end_samp_cuda,
+                                                        start_samp_cuda,
                                                         signal_ptr, ip, w,
                                                         n_ang, n_el, N, tot_samples);
     cudaDeviceSynchronize();
@@ -84,12 +82,11 @@ void envelope(double *RF, double *env_real, double *env_imag,
     cudaFree(env_real_cuda);
     cudaFree(env_imag_cuda);
     cudaFree(start_samp_cuda);
-    cudaFree(end_samp_cuda);
 }
 
 /// @brief a logic kernel to be split among compute resources for envelope calculation
 __global__ void envelope_thread(double *RF, double *env_real, double *env_imag,
-              short *start_samp, short *end_samp, double *signal_ptr, int *ip, double *w,
+              int *start_samp, double *signal_ptr, int *ip, double *w,
               int n_ang, int n_el, int N, int tot_samples)
 {
     int el = blockIdx.x * blockDim.x + threadIdx.x;

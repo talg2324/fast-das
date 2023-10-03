@@ -25,8 +25,7 @@ class DAS():
             np.ctypeslib.ndpointer(dtype=np.float64, ndim=2, flags='C_CONTIGUOUS'),
             np.ctypeslib.ndpointer(dtype=np.float64, ndim=3, flags='C_CONTIGUOUS'),
             np.ctypeslib.ndpointer(dtype=np.float64, ndim=3, flags='C_CONTIGUOUS'),
-            np.ctypeslib.ndpointer(dtype=np.int16, ndim=1, flags='C_CONTIGUOUS'),
-            np.ctypeslib.ndpointer(dtype=np.int16, ndim=1, flags='C_CONTIGUOUS'),
+            np.ctypeslib.ndpointer(dtype=np.int32, ndim=1, flags='C_CONTIGUOUS'),
             ctypes.c_int,
             ctypes.c_int,
             ctypes.c_int,
@@ -248,33 +247,31 @@ class DAS():
 
         RF = utils.load_rf(rf_filepath)
 
-        start_sample = np.squeeze(self.workspace['Receive']['StartSample']).astype(np.int16) - 1
-        end_sample = np.squeeze(self.workspace['Receive']['EndSample']).astype(np.int16)
+        start_sample = np.squeeze(self.workspace['Receive']['StartSample']).astype(np.int32) - 1
+        end_sample = np.squeeze(self.workspace['Receive']['EndSample']).astype(np.int32)
 
         n_samples = end_sample[0] - start_sample[0]
         N = int(2**(np.ceil(np.log2(n_samples))))  # Round to next power of two
-        return self.beamform(RF, N, start_sample, end_sample)
+        return self.beamform(RF, N, start_sample)
 
-    def beamform(self, RF: np.ndarray, N: int, start_sample: np.ndarray, end_sample: np.ndarray) -> np.ndarray:
+    def beamform(self, RF: np.ndarray, N: int, start_sample: np.ndarray) -> np.ndarray:
         """
         this method actually calls the library
         the DAS object must have the following before using this method
-        1) self.el_order (np.ndarray): element array describing the physical order of the RF channels on the transducer
-        2) self.NA (int): number of steering angles / number of acquisitions
-        3) self.n_el (int): number of RF data channels
-        4) self.del_Tx (np.ndarray of size [self.NA, FOVz, FOVx]): Tx delays [samples] 
-        5) self.del_Rx (np.ndarray of size [self.n_el, FOVz, FOVx]): Rx delays [samples]
+            1) self.el_order (np.ndarray): element array describing the physical order of the RF channels on the transducer
+            2) self.NA (int): number of steering angles / number of acquisitions
+            3) self.n_el (int): number of RF data channels
+            4) self.del_Tx (np.ndarray of size [self.NA, FOVz, FOVx]): Tx delays [samples] 
+            5) self.del_Rx (np.ndarray of size [self.n_el, FOVz, FOVx]): Rx delays [samples]
 
         Parameters
         ----------
         RF : np.ndarray
-            RF data to beamform
+            RF data to beamform (will be cast to float64)
         N : int
             number of data samples per acquisition rounded up to the nearest power of 2
         start_sample : np.ndarray
-            array describing where in the (samples_per_acquisition x NA) samples begins each acquisition
-        end_sample : np.ndarray
-            array describing where in the (samples_per_acquisition x NA) samples ends each acquisition 
+            array describing where in the (samples_per_acquisition x NA) samples begins each acquisition (np.int32)
 
         Returns
         -------
@@ -290,7 +287,6 @@ class DAS():
             envelope_real,
             envelope_imag,
             start_sample,
-            end_sample,
             self.NA,
             self.n_el,
             N,

@@ -17,7 +17,7 @@ extern "C" {
 
     MODULE_API void cuda_valid(bool *res);
 
-    MODULE_API void envelope(double *RF, double *env_real, double *env_imag, short *start_samp, short *end_samp, int n_ang, int n_el, int N, int tot_samples);
+    MODULE_API void envelope(double *RF, double *env_real, double *env_imag, int *start_samp, int n_ang, int n_el, int N, int tot_samples);
 
     MODULE_API void delay_and_sum(double *us_im_real, double *us_im_imag,
                                          double *env_real, double *env_imag,
@@ -31,7 +31,7 @@ extern "C" {
 #endif
 
 __global__ void envelope_thread(double *RF, double *env_real, double *env_imag,
-              short *start_samp, short *end_samp, double *signal_ptr, int *ip, double *w,
+              int *start_samp, double *signal_ptr, int *ip, double *w,
               int n_ang, int n_el, int N, int tot_samples);
               
 __global__ void interp_field_thread(double *us_im_real, double *us_im_imag, double *env_real, double *env_imag,
