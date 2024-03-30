@@ -16,7 +16,7 @@
 /// @param n_ang number of steering angles to beamform
 /// @param n_el number of elements in the transducer aperture
 /// @param N points per beam- should be a power of two
-/// @param tot_samples number of samples in an RF block for a single angle
+/// @param tot_samples number of samples in an RF block for a single element
 void envelope(double *RF, double *env_real, double *env_imag,
               int *start_samp, int n_ang, int n_el, int N, int tot_samples)
 {
