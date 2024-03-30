@@ -61,10 +61,10 @@ class DAS():
             should have shape [n_acq, n_el, N]
         del_Tx : np.ndarray
             transmit delay matrix for an output of shape HxW
-            should have shape [n_acq, H, W]
+            should have shape [n_acq, H, W] and units [samples]
         del_Rx : np.ndarray
             receive delay matrix for an output of shape HxW
-            should have shape [n_el, H, W]
+            should have shape [n_el, H, W] and units [samples]
 
         Returns
         -------
